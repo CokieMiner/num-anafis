@@ -128,7 +128,7 @@ println!("rotor       = {}", rotor.chop());
 ## Future Work
 
 - **Interval arithmetic**: `[lo, hi]` with outward rounding for rigorous error bounds
-
+- **Native Rust Arbitrary precision backend**: Maybe fork dashu and finish it, as it seems abandoned. 
 ---
 
 ## License
