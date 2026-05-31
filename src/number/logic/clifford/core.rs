@@ -301,16 +301,27 @@ impl CliffordNumber {
         let use_cache = !self.gens.cayley_signs.is_empty();
         let stride = 1 << self.gens.len();
 
-        for a in 0..limit {
+        let lhs_active: Vec<usize> = self
+            .coeffs_slice()
+            .iter()
+            .enumerate()
+            .take(limit)
+            .filter(|item| !item.1.is_zero())
+            .map(|item| item.0)
+            .collect();
+        let rhs_active: Vec<usize> = other
+            .coeffs_slice()
+            .iter()
+            .enumerate()
+            .take(limit)
+            .filter(|item| !item.1.is_zero())
+            .map(|item| item.0)
+            .collect();
+
+        for &a in &lhs_active {
             let lhs = &self.coeffs_slice()[a];
-            if lhs.is_zero() {
-                continue;
-            }
-            for b in 0..limit {
+            for &b in &rhs_active {
                 let rhs = &other.coeffs_slice()[b];
-                if rhs.is_zero() {
-                    continue;
-                }
                 let factor = if use_cache {
                     self.gens.cayley_signs[a * stride + b]
                 } else {
@@ -353,19 +364,30 @@ impl CliffordNumber {
         let use_cache = !self.gens.cayley_signs.is_empty();
         let stride = 1 << n;
 
-        for a in 0..limit {
+        let lhs_active: Vec<usize> = self
+            .coeffs_slice()
+            .iter()
+            .enumerate()
+            .take(limit)
+            .filter(|item| !item.1.is_zero())
+            .map(|item| item.0)
+            .collect();
+        let rhs_active: Vec<usize> = other
+            .coeffs_slice()
+            .iter()
+            .enumerate()
+            .take(limit)
+            .filter(|item| !item.1.is_zero())
+            .map(|item| item.0)
+            .collect();
+
+        for &a in &lhs_active {
             let lhs = &self.coeffs_slice()[a];
-            if lhs.is_zero() {
-                continue;
-            }
-            for b in 0..limit {
+            for &b in &rhs_active {
                 if a & b != 0 {
                     continue;
                 }
                 let rhs = &other.coeffs_slice()[b];
-                if rhs.is_zero() {
-                    continue;
-                }
                 // Cayley cache sign is valid for the outer product when a & b == 0:
                 // no shared generators ⇒ no metric contractions, so the geometric
                 // product sign equals pure swap parity.
@@ -416,21 +438,32 @@ impl CliffordNumber {
         let use_cache = !self.gens.cayley_signs.is_empty();
         let stride = 1 << self.gens.len();
 
-        for a in 0..limit {
+        let lhs_active: Vec<usize> = self
+            .coeffs_slice()
+            .iter()
+            .enumerate()
+            .take(limit)
+            .filter(|item| !item.1.is_zero())
+            .map(|item| item.0)
+            .collect();
+        let rhs_active: Vec<usize> = other
+            .coeffs_slice()
+            .iter()
+            .enumerate()
+            .take(limit)
+            .filter(|item| !item.1.is_zero())
+            .map(|item| item.0)
+            .collect();
+
+        for &a in &lhs_active {
             let lhs = &self.coeffs_slice()[a];
-            if lhs.is_zero() {
-                continue;
-            }
             let ga = a.count_ones();
-            for b in 0..limit {
+            for &b in &rhs_active {
                 let gb = b.count_ones();
                 if gb < ga || (a & b) != a {
                     continue;
                 }
                 let rhs = &other.coeffs_slice()[b];
-                if rhs.is_zero() {
-                    continue;
-                }
                 let factor = if use_cache {
                     self.gens.cayley_signs[a * stride + b]
                 } else {

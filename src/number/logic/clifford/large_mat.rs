@@ -253,9 +253,7 @@ fn blade_basis(gens: &GeneratorSet) -> Option<Vec<MatC>> {
 // CliffordNumber ↔ MatC
 // ---------------------------------------------------------------------------
 
-fn to_matrix(mv: &CliffordNumber) -> Option<MatC> {
-    let gens = mv.generator_set();
-    let basis = blade_basis(gens)?;
+fn to_matrix(mv: &CliffordNumber, basis: &[MatC]) -> MatC {
     let dim = basis[0].dim;
     let mut mat = MatC::zeros(dim);
     for (blade, bm) in basis.iter().enumerate() {
@@ -266,13 +264,10 @@ fn to_matrix(mv: &CliffordNumber) -> Option<MatC> {
         let term = bm.scale(&Cmplx::new(coeff.clone(), scalar_zero()));
         mat = mat.add(&term);
     }
-    Some(mat)
+    mat
 }
 
-fn from_matrix(mat: &MatC, gens: &GeneratorSet) -> CliffordNumber {
-    let Some(basis) = blade_basis(gens) else {
-        return CliffordNumber::zero_unchecked(gens.clone());
-    };
+fn from_matrix(mat: &MatC, gens: &GeneratorSet, basis: &[MatC]) -> CliffordNumber {
     let count = coeff_count_unchecked(u8::try_from(gens.len()).unwrap_or(255));
     let mut mv = CliffordNumber::zero_unchecked(gens.clone());
     for (blade, bm) in basis.iter().enumerate().take(count) {
@@ -750,9 +745,10 @@ where
     F: Fn(&Cmplx) -> Cmplx,
 {
     let gens = mv.generator_set();
-    let Some(mat) = to_matrix(mv) else {
+    let Some(basis) = blade_basis(gens) else {
         return nan_clifford(gens);
     };
+    let mat = to_matrix(mv, &basis);
 
     let Some((q, t)) = schur_decomposition(&mat) else {
         return nan_clifford(gens);
@@ -782,5 +778,5 @@ where
     let qv_fd_vinv = qv.mul(&fd_vinv);
     let result_mat = qv_fd_vinv.mul(&q.dagger());
 
-    from_matrix(&result_mat, gens)
+    from_matrix(&result_mat, gens, &basis)
 }

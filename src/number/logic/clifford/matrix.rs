@@ -43,7 +43,6 @@ impl Cmplx {
     pub fn add(&self, rhs: &Self) -> Self {
         Self(&self.0 + &rhs.0, &self.1 + &rhs.1)
     }
-    #[allow(dead_code, reason = "Available for downstream users of Mat2C")]
     pub fn sub(&self, rhs: &Self) -> Self {
         Self(&self.0 - &rhs.0, &self.1 - &rhs.1)
     }
@@ -196,16 +195,6 @@ impl Mat2C {
         }
     }
 
-    #[allow(dead_code, reason = "Available for downstream users of Mat2C")]
-    pub fn sub(&self, rhs: &Self) -> Self {
-        Self {
-            a: self.a.sub(&rhs.a),
-            b: self.b.sub(&rhs.b),
-            c: self.c.sub(&rhs.c),
-            d: self.d.sub(&rhs.d),
-        }
-    }
-
     pub fn mul(&self, rhs: &Self) -> Self {
         Self {
             a: self.a.mul(&rhs.a).add(&self.b.mul(&rhs.c)),
@@ -317,9 +306,7 @@ pub fn compute_blade_basis(gens: &GeneratorSet) -> Option<Vec<Mat2C>> {
 
 /// Convert a [`CliffordNumber`] to a 2×2 complex matrix.
 /// Returns `None` if the generator set cannot be embedded in Mat(2,ℂ).
-pub fn to_matrix(mv: &CliffordNumber) -> Option<Mat2C> {
-    let gens = mv.generator_set();
-    let blade_mats = compute_blade_basis(gens)?;
+pub fn to_matrix_with_basis(mv: &CliffordNumber, blade_mats: &[Mat2C]) -> Mat2C {
     let mut result = Mat2C::zero();
     for (blade, bm) in blade_mats.iter().enumerate() {
         let coeff = mv.coeff(blade);
@@ -329,7 +316,7 @@ pub fn to_matrix(mv: &CliffordNumber) -> Option<Mat2C> {
         let scaled = bm.scale(&Cmplx::new(coeff.clone(), scalar_zero()));
         result = result.add(&scaled);
     }
-    Some(result)
+    result
 }
 
 /// Project a Mat(2,ℂ) matrix back onto the blade basis of `gens`, returning
@@ -354,11 +341,12 @@ fn project_onto_basis(mat: &Mat2C, blade_mats: &[Mat2C]) -> Vec<Scalar> {
 /// Convert a 2×2 complex matrix back to a [`CliffordNumber`] for a given
 /// generator set. The generator set must have been used to produce the matrix
 /// (same blade basis).
-pub fn from_matrix_with_gens(mat: &Mat2C, gens: &GeneratorSet) -> CliffordNumber {
-    let Some(blade_mats) = compute_blade_basis(gens) else {
-        return CliffordNumber::zero_unchecked(gens.clone());
-    };
-    let coeffs = project_onto_basis(mat, &blade_mats);
+pub fn from_matrix_with_gens(
+    mat: &Mat2C,
+    gens: &GeneratorSet,
+    blade_mats: &[Mat2C],
+) -> CliffordNumber {
+    let coeffs = project_onto_basis(mat, blade_mats);
 
     #[allow(clippy::cast_possible_truncation, reason = "can_embed ensures n <= 3")]
     let count = coeff_count_unchecked(gens.len() as u8);

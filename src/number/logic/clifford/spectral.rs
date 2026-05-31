@@ -19,11 +19,12 @@ where
     let gens = mv.generator_set();
 
     // Path 1: ≤3 generators via Mat(2,ℂ) spectral decomposition
-    if let Some(mat) = matrix::to_matrix(mv) {
+    if let Some(blade_mats) = matrix::compute_blade_basis(gens) {
+        let mat = matrix::to_matrix_with_basis(mv, &blade_mats);
         if let Some((u, u_inv, l1, l2)) = matrix::eigendecompose(&mat) {
             let fd = Mat2C::new(f(&l1), Cmplx::zero(), Cmplx::zero(), f(&l2));
             let result_mat = u.mul(&fd).mul(&u_inv);
-            return matrix::from_matrix_with_gens(&result_mat, gens);
+            return matrix::from_matrix_with_gens(&result_mat, gens, &blade_mats);
         }
         return nan_clifford(gens);
     }
@@ -122,14 +123,15 @@ impl CliffordNumber {
         let gens = self.generator_set();
 
         // Path 1: ≤3 generators via Mat(2,ℂ)
-        if let Some(mat) = matrix::to_matrix(self) {
+        if let Some(blade_mats) = matrix::compute_blade_basis(gens) {
+            let mat = matrix::to_matrix_with_basis(self, &blade_mats);
             if let Some((u, u_inv, l1, l2)) = matrix::eigendecompose(&mat) {
                 let one = Cmplx::one();
                 let inv_l1 = one.div(&l1);
                 let inv_l2 = one.div(&l2);
                 let inv_d = Mat2C::new(inv_l1, Cmplx::zero(), Cmplx::zero(), inv_l2);
                 let result_mat = u.mul(&inv_d).mul(&u_inv);
-                return matrix::from_matrix_with_gens(&result_mat, gens);
+                return matrix::from_matrix_with_gens(&result_mat, gens, &blade_mats);
             }
             return nan_clifford(gens);
         }

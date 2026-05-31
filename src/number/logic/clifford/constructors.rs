@@ -197,6 +197,7 @@ pub fn sj() -> CliffordNumber {
 mod tests {
     use super::super::types::scalar_one;
     use super::*;
+    use crate::number::logic::traits::Number;
 
     fn test_scalar(val: crate::number::Scalar) -> CliffordNumber {
         CliffordNumber::scalar(cga_gens(), val).expect("scalar creation is infallible")
@@ -262,5 +263,39 @@ mod tests {
         let po = &inf() * &orig();
         let dot = &op + &po;
         assert_eq!(dot.coeffs_slice()[0], -(scalar_one() + scalar_one()));
+    }
+
+    #[test]
+    fn test_spectral_round_trip() {
+        let val_2 = test_scalar(scalar_one() + scalar_one());
+        let val_1 = test_scalar(scalar_one());
+        let val_05 = test_scalar(scalar_one() / (scalar_one() + scalar_one()));
+
+        let mv = &val_2 + &(&e1() * &val_1) + &(&e2() * &val_05);
+
+        // Compute exp(mv) and then ln(exp(mv)) to round-trip
+        let exp_mv = mv.exp();
+        let round_trip = exp_mv.ln();
+
+        let eps = crate::number::Scalar::epsilon();
+        let mut multiplier = scalar_one();
+        for _ in 0..49 {
+            multiplier = &multiplier + &scalar_one();
+        }
+        let tol = &eps * &multiplier;
+
+        let limit = mv.blade_count();
+        for i in 0..limit {
+            let diff = (&round_trip.coeffs_slice()[i] - &mv.coeffs_slice()[i]).abs();
+            assert!(
+                diff.total_cmp(&tol) == core::cmp::Ordering::Less,
+                "Coefficient at {} differs: got {}, expected {}, diff: {}, tol: {}",
+                i,
+                round_trip.coeffs_slice()[i],
+                mv.coeffs_slice()[i],
+                diff,
+                tol
+            );
+        }
     }
 }
