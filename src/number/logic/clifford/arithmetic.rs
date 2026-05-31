@@ -1,4 +1,4 @@
-use core::ops::{Add, Div, Mul, Neg, Sub};
+use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use super::super::float_ops::FloatType;
 use super::super::int_math::IntType;
@@ -337,5 +337,89 @@ impl Sub<&CliffordNumber> for &Scalar {
     type Output = CliffordNumber;
     fn sub(self, rhs: &CliffordNumber) -> CliffordNumber {
         self.clone() - rhs.clone()
+    }
+}
+
+// ============================================================================
+// Compound assignment operators
+// ============================================================================
+
+impl AddAssign for CliffordNumber {
+    fn add_assign(&mut self, rhs: Self) {
+        if self.generator_set() == rhs.generator_set() {
+            let limit = self.blade_count();
+            for i in 0..limit {
+                let sum = &self.coeffs_slice()[i] + &rhs.coeffs_slice()[i];
+                self.coeffs_mut_slice()[i] = sum;
+            }
+        } else {
+            *self = self.clone() + rhs;
+        }
+    }
+}
+
+impl AddAssign<&Self> for CliffordNumber {
+    fn add_assign(&mut self, rhs: &Self) {
+        if self.generator_set() == rhs.generator_set() {
+            let limit = self.blade_count();
+            for i in 0..limit {
+                let sum = &self.coeffs_slice()[i] + &rhs.coeffs_slice()[i];
+                self.coeffs_mut_slice()[i] = sum;
+            }
+        } else {
+            *self = self.clone() + rhs.clone();
+        }
+    }
+}
+
+impl SubAssign for CliffordNumber {
+    fn sub_assign(&mut self, rhs: Self) {
+        if self.generator_set() == rhs.generator_set() {
+            let limit = self.blade_count();
+            for i in 0..limit {
+                let diff = &self.coeffs_slice()[i] - &rhs.coeffs_slice()[i];
+                self.coeffs_mut_slice()[i] = diff;
+            }
+        } else {
+            *self = self.clone() - rhs;
+        }
+    }
+}
+
+impl SubAssign<&Self> for CliffordNumber {
+    fn sub_assign(&mut self, rhs: &Self) {
+        if self.generator_set() == rhs.generator_set() {
+            let limit = self.blade_count();
+            for i in 0..limit {
+                let diff = &self.coeffs_slice()[i] - &rhs.coeffs_slice()[i];
+                self.coeffs_mut_slice()[i] = diff;
+            }
+        } else {
+            *self = self.clone() - rhs.clone();
+        }
+    }
+}
+
+impl MulAssign for CliffordNumber {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = self.geometric_mul(&rhs);
+    }
+}
+
+impl MulAssign<&Self> for CliffordNumber {
+    fn mul_assign(&mut self, rhs: &Self) {
+        *self = self.geometric_mul(rhs);
+    }
+}
+
+impl DivAssign for CliffordNumber {
+    fn div_assign(&mut self, rhs: Self) {
+        *self = self.geometric_mul(&rhs.geometric_inverse());
+    }
+}
+
+impl DivAssign<&Self> for CliffordNumber {
+    fn div_assign(&mut self, rhs: &Self) {
+        *self = self.geometric_mul(&rhs.geometric_inverse());
     }
 }

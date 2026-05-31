@@ -206,7 +206,7 @@ impl CliffordNumber {
         Ok(mv)
     }
 
-    /// Build from a fixed 16-element coefficient array (requires n ≤ 4).
+    /// Build from the inline 32-element coefficient array (requires n ≤ 5).
     ///
     /// # Errors
     /// [`NumAnafisError::InlineCoefficientsRequireAtMostFourGenerators`] if n > 4.
@@ -366,6 +366,9 @@ impl CliffordNumber {
                 if rhs.is_zero() {
                     continue;
                 }
+                // Cayley cache sign is valid for the outer product when a & b == 0:
+                // no shared generators ⇒ no metric contractions, so the geometric
+                // product sign equals pure swap parity.
                 let factor = if use_cache {
                     self.gens.cayley_signs[a * stride + b]
                 } else {

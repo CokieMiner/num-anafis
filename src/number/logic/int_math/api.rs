@@ -12,20 +12,13 @@ use core::cmp::Ordering;
 // 2. backendrug   (rug::Integer — GMP-based arbitrary precision)
 // 3. backend32     (i32 — memory-optimized)
 
-#[cfg(all(
-    any(not(feature = "backend32"), feature = "backend64"),
-    not(feature = "backendrug")
-))]
+#[cfg(feature = "backend64")]
 use super::i64_math as backend;
 
 #[cfg(feature = "backendrug")]
 use super::rug_int as backend;
 
-#[cfg(all(
-    feature = "backend32",
-    not(feature = "backend64"),
-    not(feature = "backendrug")
-))]
+#[cfg(feature = "backend32")]
 use super::i32_math as backend;
 
 /// The integer representation type selected by the active backend feature.

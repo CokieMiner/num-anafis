@@ -1,20 +1,10 @@
-// Default: i64
-#[cfg(all(
-    any(not(feature = "backend32"), feature = "backend64"),
-    not(feature = "backendrug")
-))]
+#[cfg(feature = "backend64")]
 mod i64_math;
 
-// Override: rug (GMP-based arbitrary precision)
 #[cfg(feature = "backendrug")]
 mod rug_int;
 
-// Override: i32 (memory-optimized)
-#[cfg(all(
-    feature = "backend32",
-    not(feature = "backend64"),
-    not(feature = "backendrug")
-))]
+#[cfg(feature = "backend32")]
 mod i32_math;
 
 mod api;

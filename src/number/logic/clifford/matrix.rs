@@ -130,13 +130,16 @@ impl Cmplx {
     }
 
     /// Apply a real scalar function to the real part only, returning NaN if the
-    /// imaginary part is non-zero (not a real number). Used for functions
-    /// (erf, gamma, floor, etc.) that lack a standard complex extension.
+    /// imaginary part exceeds machine epsilon (not a real number). Uses a
+    /// tolerance of `ε` to absorb tiny imaginary parts left over from spectral
+    /// decomposition round-trips. Used for functions (erf, gamma, floor, etc.)
+    /// that lack a standard complex extension.
     pub fn apply_real_only(&self, f: &impl Fn(&Scalar) -> Scalar) -> Self {
-        if self.1.is_zero() {
-            Self(f(&self.0), scalar_zero())
-        } else {
+        let eps = super::super::scalar::Scalar::epsilon();
+        if self.1.abs().total_cmp(&eps) == core::cmp::Ordering::Greater {
             Self(scalar_nan(), scalar_nan())
+        } else {
+            Self(f(&self.0), scalar_zero())
         }
     }
 }

@@ -474,8 +474,8 @@ fn compute_i_start(n: &Integer, v: &Float, prec: u32) -> Integer {
     // Fast approximation of log2(N!) - N * log2(x/2) using Stirling
     loop {
         let n_f = n_start.to_f64();
-        let log2_fact = n_f * n_f.log2() - n_f * log2_e;
-        if log2_fact - n_f * x_bits > target {
+        let log2_fact = n_f.mul_add(-log2_e, n_f * n_f.log2());
+        if log2_fact - n_f.mul_add(-x_bits, log2_fact) > target {
             break;
         }
         let chunk = 10.max(prec.div_euclid(20));

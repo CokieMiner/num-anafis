@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 use core::cmp::Ordering;
 use core::fmt::{self, Display};
 use core::hash::{Hash, Hasher};
-use core::ops::{Add, Div, Mul, Neg, Sub};
+use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use super::super::scalar::Scalar;
 use super::types::{CliffordNumber, GeneratorSet, INLINE_COEFF_COUNT, scalar_zero};
@@ -163,16 +163,148 @@ macro_rules! impl_op {
         }
     };
 }
-impl_op!(Add, add);
-impl_op!(Sub, sub);
+// Direct zero-allocation implementations for simple coefficient-wise operations.
+impl<const P: usize, const Q: usize, const R: usize> Add for FastClifford<P, Q, R> {
+    type Output = Self;
+    fn add(mut self, rhs: Self) -> Self::Output {
+        let len = 1 << Self::active_generators();
+        for i in 0..len {
+            let sum = &self.coeffs[i] + &rhs.coeffs[i];
+            self.coeffs[i] = sum;
+        }
+        self
+    }
+}
+
+impl<'num, const P: usize, const Q: usize, const R: usize> Add<&'num Self>
+    for FastClifford<P, Q, R>
+{
+    type Output = Self;
+    fn add(mut self, rhs: &'num Self) -> Self::Output {
+        let len = 1 << Self::active_generators();
+        for i in 0..len {
+            let sum = &self.coeffs[i] + &rhs.coeffs[i];
+            self.coeffs[i] = sum;
+        }
+        self
+    }
+}
+
+impl<const P: usize, const Q: usize, const R: usize> Sub for FastClifford<P, Q, R> {
+    type Output = Self;
+    fn sub(mut self, rhs: Self) -> Self::Output {
+        let len = 1 << Self::active_generators();
+        for i in 0..len {
+            let diff = &self.coeffs[i] - &rhs.coeffs[i];
+            self.coeffs[i] = diff;
+        }
+        self
+    }
+}
+
+impl<'num, const P: usize, const Q: usize, const R: usize> Sub<&'num Self>
+    for FastClifford<P, Q, R>
+{
+    type Output = Self;
+    fn sub(mut self, rhs: &'num Self) -> Self::Output {
+        let len = 1 << Self::active_generators();
+        for i in 0..len {
+            let diff = &self.coeffs[i] - &rhs.coeffs[i];
+            self.coeffs[i] = diff;
+        }
+        self
+    }
+}
+
+// Geometric product and division still require the spectral/Cayley pipeline.
 impl_op!(Mul, mul);
 impl_op!(Div, div);
 
 impl<const P: usize, const Q: usize, const R: usize> Neg for FastClifford<P, Q, R> {
     type Output = Self;
-    fn neg(self) -> Self::Output {
-        let mv = CliffordNumber::from(&self);
-        Self::from(&mv.neg())
+    fn neg(mut self) -> Self::Output {
+        let len = 1 << Self::active_generators();
+        for i in 0..len {
+            let c = -&self.coeffs[i];
+            self.coeffs[i] = c;
+        }
+        self
+    }
+}
+
+// ============================================================================
+// Compound assignment operators
+// ============================================================================
+
+impl<const P: usize, const Q: usize, const R: usize> AddAssign for FastClifford<P, Q, R> {
+    fn add_assign(&mut self, rhs: Self) {
+        let len = 1 << Self::active_generators();
+        for i in 0..len {
+            let sum = &self.coeffs[i] + &rhs.coeffs[i];
+            self.coeffs[i] = sum;
+        }
+    }
+}
+
+impl<const P: usize, const Q: usize, const R: usize> AddAssign<&Self> for FastClifford<P, Q, R> {
+    fn add_assign(&mut self, rhs: &Self) {
+        let len = 1 << Self::active_generators();
+        for i in 0..len {
+            let sum = &self.coeffs[i] + &rhs.coeffs[i];
+            self.coeffs[i] = sum;
+        }
+    }
+}
+
+impl<const P: usize, const Q: usize, const R: usize> SubAssign for FastClifford<P, Q, R> {
+    fn sub_assign(&mut self, rhs: Self) {
+        let len = 1 << Self::active_generators();
+        for i in 0..len {
+            let diff = &self.coeffs[i] - &rhs.coeffs[i];
+            self.coeffs[i] = diff;
+        }
+    }
+}
+
+impl<const P: usize, const Q: usize, const R: usize> SubAssign<&Self> for FastClifford<P, Q, R> {
+    fn sub_assign(&mut self, rhs: &Self) {
+        let len = 1 << Self::active_generators();
+        for i in 0..len {
+            let diff = &self.coeffs[i] - &rhs.coeffs[i];
+            self.coeffs[i] = diff;
+        }
+    }
+}
+
+impl<const P: usize, const Q: usize, const R: usize> MulAssign for FastClifford<P, Q, R> {
+    fn mul_assign(&mut self, rhs: Self) {
+        let mv1 = CliffordNumber::from(&*self);
+        let mv2 = CliffordNumber::from(&rhs);
+        *self = Self::from(&(mv1 * &mv2));
+    }
+}
+
+impl<const P: usize, const Q: usize, const R: usize> MulAssign<&Self> for FastClifford<P, Q, R> {
+    fn mul_assign(&mut self, rhs: &Self) {
+        let mv1 = CliffordNumber::from(&*self);
+        let mv2 = CliffordNumber::from(rhs);
+        *self = Self::from(&(mv1 * &mv2));
+    }
+}
+
+impl<const P: usize, const Q: usize, const R: usize> DivAssign for FastClifford<P, Q, R> {
+    fn div_assign(&mut self, rhs: Self) {
+        let mv1 = CliffordNumber::from(&*self);
+        let mv2 = CliffordNumber::from(&rhs);
+        *self = Self::from(&(mv1 / &mv2));
+    }
+}
+
+impl<const P: usize, const Q: usize, const R: usize> DivAssign<&Self> for FastClifford<P, Q, R> {
+    fn div_assign(&mut self, rhs: &Self) {
+        let mv1 = CliffordNumber::from(&*self);
+        let mv2 = CliffordNumber::from(rhs);
+        *self = Self::from(&(mv1 / &mv2));
     }
 }
 
@@ -244,15 +376,34 @@ impl<const P: usize, const Q: usize, const R: usize> Number for FastClifford<P, 
     }
 
     fn is_integer(&self) -> bool {
-        self.coeffs.iter().all(Number::is_integer)
+        let len = 1 << Self::active_generators();
+        self.coeffs[0].is_integer()
+            && self
+                .coeffs
+                .iter()
+                .skip(1)
+                .take(len - 1)
+                .all(Number::is_zero)
     }
 
     fn is_negative(&self) -> bool {
-        self.coeffs[0].is_negative()
+        let len = 1 << Self::active_generators();
+        self.coeffs
+            .iter()
+            .skip(1)
+            .take(len - 1)
+            .all(Number::is_zero)
+            && self.coeffs[0].is_negative()
     }
 
     fn is_positive(&self) -> bool {
-        self.coeffs[0].is_positive()
+        let len = 1 << Self::active_generators();
+        self.coeffs
+            .iter()
+            .skip(1)
+            .take(len - 1)
+            .all(Number::is_zero)
+            && self.coeffs[0].is_positive()
     }
 
     fn is_finite(&self) -> bool {

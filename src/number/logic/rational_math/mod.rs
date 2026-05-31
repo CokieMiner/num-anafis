@@ -1,4 +1,4 @@
-#[cfg(not(feature = "backendrug"))]
+#[cfg(any(feature = "backend64", feature = "backend32"))]
 mod primitive_math;
 
 // Override: rug (GMP-based arbitrary precision)

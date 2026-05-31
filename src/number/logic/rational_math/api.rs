@@ -13,7 +13,7 @@ use core::cmp::Ordering;
 // 2. backend_rug   (rug::Rational — GMP-based arbitrary precision)
 // 3. backend32     (Ratio<i32> — memory-optimized)
 
-#[cfg(not(feature = "backendrug"))]
+#[cfg(any(feature = "backend64", feature = "backend32"))]
 use super::primitive_math as backend;
 
 #[cfg(feature = "backendrug")]

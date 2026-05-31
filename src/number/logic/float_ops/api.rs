@@ -13,20 +13,13 @@ use core::cmp::Ordering;
 // 2. backendrug   (rug::Float — GMP/MPFR-based arbitrary precision)
 // 3. backend32     (f32 — memory-optimized)
 
-#[cfg(all(
-    any(not(feature = "backend32"), feature = "backend64"),
-    not(feature = "backendrug")
-))]
+#[cfg(feature = "backend64")]
 use super::f64_ops as backend;
 
 #[cfg(feature = "backendrug")]
 use super::rug_ops as backend;
 
-#[cfg(all(
-    feature = "backend32",
-    not(feature = "backend64"),
-    not(feature = "backendrug")
-))]
+#[cfg(feature = "backend32")]
 use super::f32_ops as backend;
 
 /// The float representation type selected by the active backend feature.

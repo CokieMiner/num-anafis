@@ -505,12 +505,8 @@ fn schur_decomposition(mat: &MatC) -> Option<(MatC, MatC)> {
     let mut buf_givens: Vec<(Cmplx, Cmplx)> = Vec::with_capacity(mat.dim);
 
     let mut active = mat.dim;
-    // Tolerance for deflation: 10 * epsilon^2
-    let eps_val = super::super::scalar::Scalar::epsilon();
-    let eps_sq = &eps_val * &eps_val;
-    let ten_int = super::super::int_math::from_i64(10)?;
-    let ten = super::super::scalar::Scalar::from_int(ten_int);
-    let tol_sq = &eps_sq * &ten;
+    // Tolerance for deflation: entries with |x|² < ε are treated as zero.
+    let tol = super::super::scalar::Scalar::epsilon();
 
     hessenberg_reduce(&mut a, &mut q, &mut buf_v);
 
@@ -520,12 +516,8 @@ fn schur_decomposition(mat: &MatC) -> Option<(MatC, MatC)> {
         }
 
         let mut deflated = false;
-        let mut off_diag_sq_sum = scalar_zero();
-        for i in 0..active - 1 {
-            off_diag_sq_sum = off_diag_sq_sum + a.get(active - 1, i).abs_sq();
-        }
-
-        if off_diag_sq_sum.total_cmp(&tol_sq) == core::cmp::Ordering::Less {
+        let sub_diag_sq = a.get(active - 1, active - 2).abs_sq();
+        if sub_diag_sq.total_cmp(&tol) == core::cmp::Ordering::Less {
             a.set(active - 1, active - 2, Cmplx::zero());
             active -= 1;
             deflated = true;
@@ -548,10 +540,10 @@ fn schur_decomposition(mat: &MatC) -> Option<(MatC, MatC)> {
 // ---------------------------------------------------------------------------
 
 /// Check if an upper triangular matrix is numerically diagonal.
-fn is_triangular_diagonal(t: &MatC, tol_sq: &Scalar) -> bool {
+fn is_triangular_diagonal(t: &MatC, tol: &Scalar) -> bool {
     for i in 0..t.dim {
         for j in i + 1..t.dim {
-            if t.get(i, j).abs_sq().total_cmp(tol_sq) == core::cmp::Ordering::Greater {
+            if t.get(i, j).abs_sq().total_cmp(tol) == core::cmp::Ordering::Greater {
                 return false;
             }
         }
@@ -570,10 +562,10 @@ fn eigenvalues_from_triangular(t: &MatC) -> Vec<Cmplx> {
 }
 
 /// Check whether all eigenvalues are numerically distinct.
-fn eigenvalues_are_distinct(eigvals: &[Cmplx], tol_sq: &Scalar) -> bool {
+fn eigenvalues_are_distinct(eigvals: &[Cmplx], tol: &Scalar) -> bool {
     for i in 0..eigvals.len() {
         for j in i + 1..eigvals.len() {
-            if eigvals[i].sub(&eigvals[j]).abs_sq().total_cmp(tol_sq) == core::cmp::Ordering::Less {
+            if eigvals[i].sub(&eigvals[j]).abs_sq().total_cmp(tol) == core::cmp::Ordering::Less {
                 return false;
             }
         }
@@ -588,13 +580,9 @@ fn eigenvalues_are_distinct(eigvals: &[Cmplx], tol_sq: &Scalar) -> bool {
 fn eigenvectors_from_triangular_distinct(t: &MatC) -> Option<MatC> {
     let n = t.dim;
     let eigvals = eigenvalues_from_triangular(t);
-    let eps_val = super::super::scalar::Scalar::epsilon();
-    let eps_sq = &eps_val * &eps_val;
-    let ten_int = super::super::int_math::from_i64(10)?;
-    let ten = super::super::scalar::Scalar::from_int(ten_int);
-    let distinct_tol_sq = &eps_sq * &ten;
+    let tol = super::super::scalar::Scalar::epsilon();
 
-    if !eigenvalues_are_distinct(&eigvals, &distinct_tol_sq) {
+    if !eigenvalues_are_distinct(&eigvals, &tol) {
         return None;
     }
 
@@ -637,10 +625,10 @@ fn inverse_upper_triangular(v: &MatC) -> MatC {
 
 /// Compute the rank of an upper triangular matrix by counting non-zero diagonal entries
 /// above a numerical threshold.
-fn rank_upper_triangular(mat: &MatC, tol_sq: &Scalar) -> usize {
+fn rank_upper_triangular(mat: &MatC, tol: &Scalar) -> usize {
     let mut r = 0;
     for i in 0..mat.dim {
-        if mat.get(i, i).abs_sq().total_cmp(tol_sq) == core::cmp::Ordering::Greater {
+        if mat.get(i, i).abs_sq().total_cmp(tol) == core::cmp::Ordering::Greater {
             r += 1;
         }
     }
@@ -652,14 +640,10 @@ fn rank_upper_triangular(mat: &MatC, tol_sq: &Scalar) -> usize {
 /// Returns `(V, V_inv)` where `T = V * D * V^{-1}`,
 /// or `None` if the matrix is defective.
 fn eigendecompose_from_schur(t: &MatC) -> Option<(MatC, MatC)> {
-    let eps_val = super::super::scalar::Scalar::epsilon();
-    let eps_sq = &eps_val * &eps_val;
-    let ten_int = super::super::int_math::from_i64(10)?;
-    let ten = super::super::scalar::Scalar::from_int(ten_int);
-    let tol_sq = &eps_sq * &ten;
+    let tol = super::super::scalar::Scalar::epsilon();
 
     // Fast path: T is already diagonal → V = I
-    if is_triangular_diagonal(t, &tol_sq) {
+    if is_triangular_diagonal(t, &tol) {
         return Some((MatC::identity(t.dim), MatC::identity(t.dim)));
     }
 
@@ -685,7 +669,7 @@ fn eigendecompose_from_schur(t: &MatC) -> Option<(MatC, MatC)> {
         // Find all eigenvalues close to eig_i
         let mut multiplicity = 0_usize;
         for j in i..n {
-            if eig_i.sub(&eigvals[j]).abs_sq().total_cmp(&tol_sq) == core::cmp::Ordering::Less {
+            if eig_i.sub(&eigvals[j]).abs_sq().total_cmp(&tol) == core::cmp::Ordering::Less {
                 processed[j] = true;
                 multiplicity += 1;
             }
@@ -697,7 +681,7 @@ fn eigendecompose_from_schur(t: &MatC) -> Option<(MatC, MatC)> {
             let val = shifted.get(k, k).sub(eig_i);
             shifted.set(k, k, val);
         }
-        let r = rank_upper_triangular(&shifted, &tol_sq);
+        let r = rank_upper_triangular(&shifted, &tol);
         if r != n - multiplicity {
             return None; // defective
         }
@@ -714,7 +698,7 @@ fn eigendecompose_from_schur(t: &MatC) -> Option<(MatC, MatC)> {
         // Find cluster: all j where λ_j ≈ λ_i
         let mut cluster: Vec<usize> = Vec::new();
         for j in 0..n {
-            if eig_i.sub(&eigvals[j]).abs_sq().total_cmp(&tol_sq) == core::cmp::Ordering::Less
+            if eig_i.sub(&eigvals[j]).abs_sq().total_cmp(&tol) == core::cmp::Ordering::Less
                 && !processed[j]
             {
                 cluster.push(j);
@@ -741,7 +725,7 @@ fn eigendecompose_from_schur(t: &MatC) -> Option<(MatC, MatC)> {
                         }
                     }
                     let denom = t.get(j, j).sub(lambda);
-                    if denom.abs_sq().total_cmp(&tol_sq) == core::cmp::Ordering::Greater {
+                    if denom.abs_sq().total_cmp(&tol) == core::cmp::Ordering::Greater {
                         v.set(j, idx, sum.neg().div(&denom));
                     }
                 }
