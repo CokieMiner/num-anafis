@@ -609,7 +609,7 @@ fn approx_sqrt(x: usize) -> usize {
     s >>= 1;
     r = s;
     for _ in 0..5 {
-        r = (r + x.checked_div(r.max(1)).unwrap_or(0)) >> 1;
+        r = usize::midpoint(r, x.checked_div(r.max(1)).unwrap_or(0));
     }
     r
 }
