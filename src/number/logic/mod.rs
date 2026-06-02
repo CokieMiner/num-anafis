@@ -1,8 +1,8 @@
-#[cfg(feature = "clifford")]
-pub(super) mod clifford;
-pub(super) mod float_ops;
-pub(super) mod int_math;
-pub(super) mod math_ext;
-pub(super) mod rational_math;
-pub(super) mod scalar;
-pub(super) mod traits;
+mod constructors;
+mod math_ext;
+
+#[cfg(feature = "serde")]
+mod serde_impl;
+
+pub use constructors::{IntoScalar, r, s};
+pub use math_ext::AnafisMathExt;

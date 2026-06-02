@@ -2,8 +2,14 @@
 //! compile-time `FloatType`, so callers that don't need the full `Scalar`
 //! wrapper can access every function with zero overhead.
 
-use crate::number::logic::float_ops::FloatType;
-use crate::number::logic::int_math::IntType;
+use crate::float_ops::{
+    FloatType, abs, acos, acosh, add, asin, asinh, assoc_legendre, atan, atan2, atanh, besseli,
+    besselj, besselk, bessely, beta, cbrt, ceil, clone, cos, cosh, digamma, div, elliptic_e,
+    elliptic_k, erf, erfc, exp, expm1, floor, fract, gamma, hermite, lambertw, lgamma, ln, log1p,
+    mul, neg, polygamma, pow, round, signum, sin, sinh, spherical_harmonic, sqrt, sub, tan, tanh,
+    tetragamma, trigamma, zeta, zeta_deriv,
+};
+use crate::int_math::IntType;
 
 /// Extension trait providing every mathematical operation directly on the
 /// compile-time active float backend (`f32`, `f64`, or `rug::Float`).
@@ -190,226 +196,226 @@ impl AnafisMathExt for FloatType {
     // --- Arithmetic ---
     #[inline]
     fn clone(&self) -> Self {
-        crate::number::logic::float_ops::clone(self)
+        clone(self)
     }
     #[inline]
     fn add(&self, rhs: &Self) -> Self {
-        crate::number::logic::float_ops::add(self, rhs)
+        add(self, rhs)
     }
     #[inline]
     fn sub(&self, rhs: &Self) -> Self {
-        crate::number::logic::float_ops::sub(self, rhs)
+        sub(self, rhs)
     }
     #[inline]
     fn mul(&self, rhs: &Self) -> Self {
-        crate::number::logic::float_ops::mul(self, rhs)
+        mul(self, rhs)
     }
     #[inline]
     fn div(&self, rhs: &Self) -> Self {
-        crate::number::logic::float_ops::div(self, rhs)
+        div(self, rhs)
     }
     #[inline]
     fn neg(&self) -> Self {
-        crate::number::logic::float_ops::neg(self)
+        neg(self)
     }
 
     // --- Basic math ---
     #[inline]
     fn abs(&self) -> Self {
-        crate::number::logic::float_ops::abs(self)
+        abs(self)
     }
     #[inline]
     fn signum(&self) -> Self {
-        crate::number::logic::float_ops::signum(self)
+        signum(self)
     }
     #[inline]
     fn floor(&self) -> Self {
-        crate::number::logic::float_ops::floor(self)
+        floor(self)
     }
     #[inline]
     fn ceil(&self) -> Self {
-        crate::number::logic::float_ops::ceil(self)
+        ceil(self)
     }
     #[inline]
     fn round(&self) -> Self {
-        crate::number::logic::float_ops::round(self)
+        round(self)
     }
     #[inline]
     fn fract(&self) -> Self {
-        crate::number::logic::float_ops::fract(self)
+        fract(self)
     }
     #[inline]
     fn pow(&self, rhs: &Self) -> Self {
-        crate::number::logic::float_ops::pow(self, rhs)
+        pow(self, rhs)
     }
     #[inline]
     fn sqrt(&self) -> Self {
-        crate::number::logic::float_ops::sqrt(self)
+        sqrt(self)
     }
     #[inline]
     fn cbrt(&self) -> Self {
-        crate::number::logic::float_ops::cbrt(self)
+        cbrt(self)
     }
 
     // --- Trigonometric ---
     #[inline]
     fn sin(&self) -> Self {
-        crate::number::logic::float_ops::sin(self)
+        sin(self)
     }
     #[inline]
     fn cos(&self) -> Self {
-        crate::number::logic::float_ops::cos(self)
+        cos(self)
     }
     #[inline]
     fn tan(&self) -> Self {
-        crate::number::logic::float_ops::tan(self)
+        tan(self)
     }
     #[inline]
     fn asin(&self) -> Self {
-        crate::number::logic::float_ops::asin(self)
+        asin(self)
     }
     #[inline]
     fn acos(&self) -> Self {
-        crate::number::logic::float_ops::acos(self)
+        acos(self)
     }
     #[inline]
     fn atan(&self) -> Self {
-        crate::number::logic::float_ops::atan(self)
+        atan(self)
     }
     #[inline]
     fn atan2(&self, x: &Self) -> Self {
-        crate::number::logic::float_ops::atan2(self, x)
+        atan2(self, x)
     }
 
     // --- Hyperbolic ---
     #[inline]
     fn sinh(&self) -> Self {
-        crate::number::logic::float_ops::sinh(self)
+        sinh(self)
     }
     #[inline]
     fn cosh(&self) -> Self {
-        crate::number::logic::float_ops::cosh(self)
+        cosh(self)
     }
     #[inline]
     fn tanh(&self) -> Self {
-        crate::number::logic::float_ops::tanh(self)
+        tanh(self)
     }
     #[inline]
     fn asinh(&self) -> Self {
-        crate::number::logic::float_ops::asinh(self)
+        asinh(self)
     }
     #[inline]
     fn acosh(&self) -> Self {
-        crate::number::logic::float_ops::acosh(self)
+        acosh(self)
     }
     #[inline]
     fn atanh(&self) -> Self {
-        crate::number::logic::float_ops::atanh(self)
+        atanh(self)
     }
 
     // --- Exponential & logarithmic ---
     #[inline]
     fn exp(&self) -> Self {
-        crate::number::logic::float_ops::exp(self)
+        exp(self)
     }
     #[inline]
     fn expm1(&self) -> Self {
-        crate::number::logic::float_ops::expm1(self)
+        expm1(self)
     }
     #[inline]
     fn ln(&self) -> Self {
-        crate::number::logic::float_ops::ln(self)
+        ln(self)
     }
     #[inline]
     fn log1p(&self) -> Self {
-        crate::number::logic::float_ops::log1p(self)
+        log1p(self)
     }
 
     // --- Special functions (scalar) ---
     #[inline]
     fn erf(&self) -> Self {
-        crate::number::logic::float_ops::erf(self)
+        erf(self)
     }
     #[inline]
     fn erfc(&self) -> Self {
-        crate::number::logic::float_ops::erfc(self)
+        erfc(self)
     }
     #[inline]
     fn gamma(&self) -> Self {
-        crate::number::logic::float_ops::gamma(self)
+        gamma(self)
     }
     #[inline]
     fn lgamma(&self) -> Self {
-        crate::number::logic::float_ops::lgamma(self)
+        lgamma(self)
     }
     #[inline]
     fn digamma(&self) -> Self {
-        crate::number::logic::float_ops::digamma(self)
+        digamma(self)
     }
     #[inline]
     fn trigamma(&self) -> Self {
-        crate::number::logic::float_ops::trigamma(self)
+        trigamma(self)
     }
     #[inline]
     fn tetragamma(&self) -> Self {
-        crate::number::logic::float_ops::tetragamma(self)
+        tetragamma(self)
     }
     #[inline]
     fn elliptic_k(&self) -> Self {
-        crate::number::logic::float_ops::elliptic_k(self)
+        elliptic_k(self)
     }
     #[inline]
     fn elliptic_e(&self) -> Self {
-        crate::number::logic::float_ops::elliptic_e(self)
+        elliptic_e(self)
     }
     #[inline]
     fn zeta(&self) -> Self {
-        crate::number::logic::float_ops::zeta(self)
+        zeta(self)
     }
     #[inline]
     fn beta(&self, b: &Self) -> Self {
-        crate::number::logic::float_ops::beta(self, b)
+        beta(self, b)
     }
 
     // --- Special functions with integer parameters ---
     #[inline]
     fn lambertw(&self, order: IntType) -> Self {
-        crate::number::logic::float_ops::lambertw(&order, self)
+        lambertw(&order, self)
     }
     #[inline]
     fn besselj(&self, n: IntType) -> Self {
-        crate::number::logic::float_ops::besselj(&n, self)
+        besselj(&n, self)
     }
     #[inline]
     fn bessely(&self, n: IntType) -> Self {
-        crate::number::logic::float_ops::bessely(&n, self)
+        bessely(&n, self)
     }
     #[inline]
     fn besseli(&self, n: IntType) -> Self {
-        crate::number::logic::float_ops::besseli(&n, self)
+        besseli(&n, self)
     }
     #[inline]
     fn besselk(&self, n: IntType) -> Self {
-        crate::number::logic::float_ops::besselk(&n, self)
+        besselk(&n, self)
     }
     #[inline]
     fn polygamma(&self, n: IntType) -> Self {
-        crate::number::logic::float_ops::polygamma(&n, self)
+        polygamma(&n, self)
     }
     #[inline]
     fn zeta_deriv(&self, n: IntType) -> Self {
-        crate::number::logic::float_ops::zeta_deriv(&n, self)
+        zeta_deriv(&n, self)
     }
     #[inline]
     fn hermite(&self, n: IntType) -> Self {
-        crate::number::logic::float_ops::hermite(&n, self)
+        hermite(&n, self)
     }
     #[inline]
     fn assoc_legendre(&self, l: IntType, m: IntType) -> Self {
-        crate::number::logic::float_ops::assoc_legendre(&l, &m, self)
+        assoc_legendre(&l, &m, self)
     }
     #[inline]
     fn spherical_harmonic(&self, l: IntType, m: IntType, phi: &Self) -> Self {
-        crate::number::logic::float_ops::spherical_harmonic(&l, &m, self, phi)
+        spherical_harmonic(&l, &m, self, phi)
     }
 }
