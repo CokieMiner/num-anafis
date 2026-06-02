@@ -915,7 +915,8 @@ fn apply_ast_schur(t: &MatC, ast: &SpectralFn) -> Option<MatC> {
 
             let denom = t.get(i, i).sub(t.get(j, j));
             if denom.abs().total_cmp(&tol) == Ordering::Less {
-                // Identical eigenvalues were not contiguous. QR failed to group them perfectly.
+                // Identical eigenvalues should have been grouped by reorder_schur.
+                // If we reach here, it means the reordering failed or the matrix is highly pathological.
                 return None;
             }
 
@@ -926,6 +927,113 @@ fn apply_ast_schur(t: &MatC, ast: &SpectralFn) -> Option<MatC> {
     Some(f)
 }
 
+/// Reorders the Schur decomposition so that identical (or very close) eigenvalues
+/// are contiguous on the diagonal. This uses the Bai and Demmel algorithm with Givens rotations.
+fn reorder_schur(t: &mut MatC, q: &mut MatC) {
+    let n = t.dim;
+    let eps = Scalar::epsilon();
+    let hundred = s(10);
+    let tol = eps.mul(&hundred);
+
+    // Assign a cluster ID to each eigenvalue.
+    let mut cluster_id = alloc::vec![0; n];
+    let mut current_id = 0;
+    
+    // Transitive closure approach:
+    for i in 0..n {
+        if cluster_id[i] == 0 {
+            current_id += 1;
+            cluster_id[i] = current_id;
+            let val_i = t.get(i, i).clone();
+            for (j, cluster_val) in cluster_id.iter_mut().enumerate().skip(i + 1) {
+                if *cluster_val == 0 {
+                    let diff = t.get(j, j).sub(&val_i);
+                    if diff.abs().total_cmp(&tol) != Ordering::Greater {
+                        *cluster_val = current_id;
+                    }
+                }
+            }
+        }
+    }
+
+    // Sort the eigenvalues so that elements of the same cluster are contiguous.
+    let mut swapped = true;
+    while swapped {
+        swapped = false;
+        for k in 0..n.saturating_sub(1) {
+            if cluster_id[k] > cluster_id[k + 1] {
+                swap_adjacent_schur(t, q, k);
+                cluster_id.swap(k, k + 1);
+                swapped = true;
+            }
+        }
+    }
+}
+
+#[allow(
+    clippy::many_single_char_names,
+    reason = "Matrix math conventionally uses single letters"
+)]
+fn swap_adjacent_schur(t: &mut MatC, q: &mut MatC, k: usize) {
+    let t11 = t.get(k, k).clone();
+    let t12 = t.get(k, k + 1).clone();
+    let t22 = t.get(k + 1, k + 1).clone();
+
+    let x = t12;
+    let y = t22.sub(&t11);
+    
+    let norm_sqr = x.abs_sq() + y.abs_sq();
+    if norm_sqr.total_cmp(&s(0)) == Ordering::Equal {
+        return; // Already decoupled
+    }
+    
+    let norm = norm_sqr.sqrt();
+    let norm_cmplx = Cmplx(norm, s(0));
+    let c = x.div(&norm_cmplx);
+    let s_rot = y.div(&norm_cmplx);
+    let c_conj = c.conj();
+    let s_conj = s_rot.conj();
+
+    let n = t.dim;
+
+    // T = T * G
+    for i in 0..n {
+        let col_k = t.get(i, k).clone();
+        let col_k1 = t.get(i, k + 1).clone();
+        
+        let new_col_k = col_k.mul(&c).add(&col_k1.mul(&s_rot));
+        let new_col_k1 = col_k.mul(&s_conj.neg()).add(&col_k1.mul(&c_conj));
+        
+        t.set(i, k, new_col_k);
+        t.set(i, k + 1, new_col_k1);
+    }
+
+    // T = G^* * T
+    for j in 0..n {
+        let row_k = t.get(k, j).clone();
+        let row_k1 = t.get(k + 1, j).clone();
+        
+        let new_row_k = c_conj.mul(&row_k).add(&s_conj.mul(&row_k1));
+        let new_row_k1 = s_rot.neg().mul(&row_k).add(&c.mul(&row_k1));
+        
+        t.set(k, j, new_row_k);
+        t.set(k + 1, j, new_row_k1);
+    }
+    t.set(k + 1, k, Cmplx::zero());
+
+    // Q = Q * G
+    for i in 0..n {
+        let col_k = q.get(i, k).clone();
+        let col_k1 = q.get(i, k + 1).clone();
+        
+        let new_col_k = col_k.mul(&c).add(&col_k1.mul(&s_rot));
+        let new_col_k1 = col_k.mul(&s_conj.neg()).add(&col_k1.mul(&c_conj));
+        
+        q.set(i, k, new_col_k);
+        q.set(i, k + 1, new_col_k1);
+    }
+}
+
 pub fn apply_via_spectral(mv: &CliffordNumber, ast: &SpectralFn) -> CliffordNumber {
     let gens = mv.generator_set();
     let Some(basis) = blade_basis(gens) else {
@@ -933,9 +1041,11 @@ pub fn apply_via_spectral(mv: &CliffordNumber, ast: &SpectralFn) -> CliffordNumb
     };
     let mat = to_matrix(mv, &basis);
 
-    let Some((q, t)) = schur_decomposition(&mat) else {
+    let Some((mut q, mut t)) = schur_decomposition(&mat) else {
         return nan_clifford(gens);
     };
+
+    reorder_schur(&mut t, &mut q);
 
     let Some(f_mat) = apply_ast_schur(&t, ast) else {
         return nan_clifford(gens);

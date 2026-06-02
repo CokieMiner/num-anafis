@@ -1,13 +1,14 @@
 use alloc::vec::Vec;
 use core::array;
 use core::cmp::Ordering;
-use core::fmt::{Display, Formatter, Result};
+use core::fmt::{self, Display, Formatter};
 use core::hash::{Hash, Hasher};
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use super::types::{CliffordNumber, GeneratorSet, INLINE_COEFF_COUNT, scalar_zero};
 use crate::scalar::Scalar;
 use crate::traits::Number;
+use crate::error::NumAnafisError;
 
 /// A purely algebraic, zero-allocation Clifford multivector optimized for `#![no_std]`
 /// and const-generic compile-time evaluation.
@@ -31,6 +32,7 @@ impl<const P: usize, const Q: usize, const R: usize> FastClifford<P, Q, R> {
     /// Creates a multivector initialized completely to zero.
     #[must_use]
     pub fn zero() -> Self {
+        let () = Self::_CHECK_SIZE;
         Self {
             coeffs: array::from_fn(|_| scalar_zero()),
         }
@@ -105,10 +107,11 @@ impl<const P: usize, const Q: usize, const R: usize> From<&FastClifford<P, Q, R>
     }
 }
 
-impl<const P: usize, const Q: usize, const R: usize> From<&CliffordNumber>
-    for FastClifford<P, Q, R>
-{
-    fn from(val: &CliffordNumber) -> Self {
+impl<const P: usize, const Q: usize, const R: usize> FastClifford<P, Q, R> {
+    /// Creates a `FastClifford` from a `CliffordNumber` without checking generator match.
+    #[must_use]
+    pub(crate) fn from_unchecked(val: &CliffordNumber) -> Self {
+        let () = Self::_CHECK_SIZE;
         let mut coeffs = array::from_fn(|_| scalar_zero());
         let len = 1 << (P + Q + R);
         for (i, coeff) in coeffs.iter_mut().enumerate().take(len) {
@@ -118,8 +121,38 @@ impl<const P: usize, const Q: usize, const R: usize> From<&CliffordNumber>
     }
 }
 
+impl<const P: usize, const Q: usize, const R: usize> TryFrom<&CliffordNumber>
+    for FastClifford<P, Q, R>
+{
+    type Error = NumAnafisError;
+
+    fn try_from(val: &CliffordNumber) -> Result<Self, Self::Error> {
+        let () = Self::_CHECK_SIZE;
+        let gens = val.generator_set();
+        if gens.len() != P + Q + R {
+            return Err(NumAnafisError::MismatchedGeneratorSet);
+        }
+        for i in 0..P {
+            if gens.metric_at(i) != 1 {
+                return Err(NumAnafisError::MismatchedGeneratorSet);
+            }
+        }
+        for i in P..P + Q {
+            if gens.metric_at(i) != -1 {
+                return Err(NumAnafisError::MismatchedGeneratorSet);
+            }
+        }
+        for i in P + Q..P + Q + R {
+            if gens.metric_at(i) != 0 {
+                return Err(NumAnafisError::MismatchedGeneratorSet);
+            }
+        }
+        Ok(Self::from_unchecked(val))
+    }
+}
+
 impl<const P: usize, const Q: usize, const R: usize> Display for FastClifford<P, Q, R> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mv = CliffordNumber::from(self);
         write!(f, "{mv}")
     }
@@ -148,7 +181,7 @@ macro_rules! impl_op {
                 let mv1 = CliffordNumber::from(&self);
                 let mv2 = CliffordNumber::from(&rhs);
                 let res = mv1.$method(&mv2);
-                Self::from(&res)
+                Self::from_unchecked(&res)
             }
         }
         impl<'num, const P: usize, const Q: usize, const R: usize>
@@ -159,7 +192,7 @@ macro_rules! impl_op {
                 let mv1 = CliffordNumber::from(&self);
                 let mv2 = CliffordNumber::from(rhs);
                 let res = mv1.$method(&mv2);
-                Self::from(&res)
+                Self::from_unchecked(&res)
             }
         }
     };
@@ -281,7 +314,7 @@ impl<const P: usize, const Q: usize, const R: usize> MulAssign for FastClifford<
     fn mul_assign(&mut self, rhs: Self) {
         let mv1 = CliffordNumber::from(&*self);
         let mv2 = CliffordNumber::from(&rhs);
-        *self = Self::from(&(mv1 * &mv2));
+        *self = Self::from_unchecked(&(mv1 * &mv2));
     }
 }
 
@@ -289,7 +322,7 @@ impl<const P: usize, const Q: usize, const R: usize> MulAssign<&Self> for FastCl
     fn mul_assign(&mut self, rhs: &Self) {
         let mv1 = CliffordNumber::from(&*self);
         let mv2 = CliffordNumber::from(rhs);
-        *self = Self::from(&(mv1 * &mv2));
+        *self = Self::from_unchecked(&(mv1 * &mv2));
     }
 }
 
@@ -297,7 +330,7 @@ impl<const P: usize, const Q: usize, const R: usize> DivAssign for FastClifford<
     fn div_assign(&mut self, rhs: Self) {
         let mv1 = CliffordNumber::from(&*self);
         let mv2 = CliffordNumber::from(&rhs);
-        *self = Self::from(&(mv1 / &mv2));
+        *self = Self::from_unchecked(&(mv1 / &mv2));
     }
 }
 
@@ -305,7 +338,7 @@ impl<const P: usize, const Q: usize, const R: usize> DivAssign<&Self> for FastCl
     fn div_assign(&mut self, rhs: &Self) {
         let mv1 = CliffordNumber::from(&*self);
         let mv2 = CliffordNumber::from(rhs);
-        *self = Self::from(&(mv1 / &mv2));
+        *self = Self::from_unchecked(&(mv1 / &mv2));
     }
 }
 
@@ -315,7 +348,7 @@ macro_rules! delegate_number_unary {
             fn $method(&self) -> Self {
                 let mv = CliffordNumber::from(self);
                 let res = mv.$method();
-                Self::from(&res)
+                Self::from_unchecked(&res)
             }
         )*
     };
@@ -328,7 +361,7 @@ macro_rules! delegate_number_binary {
                 let mv1 = CliffordNumber::from(self);
                 let mv2 = CliffordNumber::from(other);
                 let res = mv1.$method(&mv2);
-                Self::from(&res)
+                Self::from_unchecked(&res)
             }
         )*
     };
@@ -352,7 +385,7 @@ impl<const P: usize, const Q: usize, const R: usize> Number for FastClifford<P, 
         let mv_l = CliffordNumber::from(l);
         let mv_m = CliffordNumber::from(m);
         let res = mv1.assoc_legendre(&mv_l, &mv_m);
-        Self::from(&res)
+        Self::from_unchecked(&res)
     }
 
     fn spherical_harmonic(&self, l: &Self, m: &Self, phi: &Self) -> Self {
@@ -361,7 +394,7 @@ impl<const P: usize, const Q: usize, const R: usize> Number for FastClifford<P, 
         let mv_m = CliffordNumber::from(m);
         let mv_phi = CliffordNumber::from(phi);
         let res = mv1.spherical_harmonic(&mv_l, &mv_m, &mv_phi);
-        Self::from(&res)
+        Self::from_unchecked(&res)
     }
 
     fn is_zero(&self) -> bool {

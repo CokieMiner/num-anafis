@@ -98,6 +98,10 @@ impl GeneratorSet {
             entries.windows(2).all(|w| w[0].0 < w[1].0),
             "GeneratorSet entries must be sorted by id with no duplicates"
         );
+        assert!(
+            entries.iter().all(|&(_, m)| m == 1 || m == -1 || m == 0),
+            "Generator metrics must be +1, -1, or 0"
+        );
         Self {
             cayley_signs: compute_cayley_signs(&entries),
             entries,
@@ -132,6 +136,10 @@ impl GeneratorSet {
     ///
     /// Returns `(union, perm_self, perm_other)` where `perm_x[i]` is the bit position of
     /// `x`'s i-th generator in the union.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the same generator ID exists in both sets but with different metrics.
     #[must_use]
     pub fn union_with(&self, other: &Self) -> (Self, Vec<u8>, Vec<u8>) {
         let mut union = Vec::with_capacity(self.entries.len() + other.entries.len());
@@ -152,7 +160,7 @@ impl GeneratorSet {
                     ia += 1;
                 }
                 Ordering::Equal => {
-                    debug_assert_eq!(am, bm, "same generator ID must have the same metric");
+                    assert_eq!(am, bm, "same generator ID must have the same metric");
                     union.push((aid, am));
                     perm_a[ia] = pos;
                     perm_b[ib] = pos;

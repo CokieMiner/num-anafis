@@ -25,6 +25,8 @@ pub enum NumAnafisError {
         /// Requested active generator count.
         active: u8,
     },
+    /// Attempted to cast a `CliffordNumber` from an incompatible algebra.
+    MismatchedGeneratorSet,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,6 +82,9 @@ impl Display for NumAnafisError {
                     f,
                     "active generators ({active}) exceed platform bit width for indexing"
                 )
+            }
+            Self::MismatchedGeneratorSet => {
+                write!(f, "attempted to cast a CliffordNumber from an incompatible algebra")
             }
         }
     }

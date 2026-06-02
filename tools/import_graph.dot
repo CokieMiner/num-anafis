@@ -421,6 +421,7 @@ digraph imports {
   "src::clifford::logic::fast" -> "src::clifford::logic::types::scalar_zero";
   "src::clifford::logic::fast" -> "src::scalar::Scalar";
   "src::clifford::logic::fast" -> "src::traits::Number";
+  "src::clifford::logic::fast" -> "src::error::NumAnafisError";
   "alloc" [shape="ellipse", style="dashed"];
   "src::clifford::logic::large_mat" -> "alloc";
   "alloc" [shape="ellipse", style="dashed"];

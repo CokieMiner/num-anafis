@@ -626,7 +626,8 @@ impl SpectralFn {
     /// `.derivative()`.
     #[allow(
         clippy::pattern_type_mismatch,
-        reason = "match ergonomics produce cleaner code here"
+        clippy::too_many_lines,
+        reason = "match ergonomics produce cleaner code here, and a centralized match block is more readable than fragmented helper functions"
     )]
     pub fn eval_jet(&self, x: &Jet) -> Jet {
         let deg = x.degree();
