@@ -6,17 +6,34 @@ Core numerical and algebraic computation engine of the **SymbAnaFis** library. P
 
 ## Feature Flags
 
-| Feature     | Description                                                              | Default |
-|-------------|--------------------------------------------------------------------------|---------|
-| `backend64` | Native `i64`/`f64` arithmetic (fastest)                                  | **yes** |
-| `backend32` | `i32`/`f32` (memory-optimized)                                           | no      |
-| `backendrug`| GMP/MPFR arbitrary-precision via `rug`                                   | no      |
-| `clifford`  | Clifford / CGA multivector engine                                        | no      |
-| `serde`     | `Serialize`/`Deserialize` for all public types                           | no      |
-| `python`    | PyO3 bindings for Python                                                 | no      |
-| `std`       | `std` support (enabled automatically by `python`)                        | no      |
+| Feature     | Description                                                              |
+|-------------|--------------------------------------------------------------------------|
+| `backend64` | Native `i64`/`f64` arithmetic                                            |
+| `backend32` | `i32`/`f32` (memory-optimized)                                           |
+| `backendrug`| GMP/MPFR arbitrary-precision via `rug`                                   |
+| `clifford`  | Clifford / CGA multivector engine                                        |
+| `serde`     | `Serialize`/`Deserialize` for all public types                           |
+| `python`    | PyO3 bindings for Python                                                 |
+| `std`       | `std` support (enabled automatically by `python`)                        |
 
-Backend features (`backend32`, `backend64`, `backendrug`) are **mutually exclusive**. Exactly one must be active.
+### Backend Selection
+
+You can select the numeric precision backend by enabling one of `backend32`, `backend64`, or `backendrug`.
+
+**Important:** Backends are automatically resolved using the following logic:
+1. If exactly one backend feature is enabled, it is used.
+2. If **no backend** is selected, it gracefully falls back to `backend64`. This means you can add `num-anafis` as a dependency without worrying about default features.
+3. If **multiple backends** are selected (e.g. two crates in your dependency tree ask for different backends), the library will emit a compile-time error. If you are building a library that depends on `num-anafis`, you should forward the backend feature to your users without picking a default:
+   ```toml
+   # In your library's Cargo.toml
+   [dependencies]
+   num-anafis = { version = "0.1", default-features = false }
+
+   [features]
+   backend32 = ["num-anafis/backend32"]
+   backend64 = ["num-anafis/backend64"]
+   backendrug = ["num-anafis/backendrug"]
+   ```
 
 ---
 

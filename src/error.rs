@@ -84,7 +84,10 @@ impl Display for NumAnafisError {
                 )
             }
             Self::MismatchedGeneratorSet => {
-                write!(f, "attempted to cast a CliffordNumber from an incompatible algebra")
+                write!(
+                    f,
+                    "attempted to cast a CliffordNumber from an incompatible algebra"
+                )
             }
         }
     }

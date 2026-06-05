@@ -14,7 +14,7 @@ use crate::int_math::{IntType, clone, from_i64 as from_i64_to_int, is_zero};
 use crate::rational_math::new;
 use crate::scalar::{Scalar, ScalarRepr};
 
-#[cfg(feature = "backendrug")]
+#[cfg(backend = "rug")]
 use rug::{Float, Integer, Rational};
 
 // ============================================================================
@@ -143,7 +143,7 @@ macro_rules! impl_from_for_scalar {
 
 impl_from_for_scalar!(i8, i16, i32, i64, u8, u16, u32, u64, usize, f32, f64);
 
-#[cfg(feature = "backendrug")]
+#[cfg(backend = "rug")]
 impl IntoScalar for Integer {
     #[inline]
     fn into_scalar(self) -> Scalar {
@@ -151,7 +151,7 @@ impl IntoScalar for Integer {
     }
 }
 
-#[cfg(feature = "backendrug")]
+#[cfg(backend = "rug")]
 impl IntoScalar for Rational {
     #[inline]
     fn into_scalar(self) -> Scalar {
@@ -159,7 +159,7 @@ impl IntoScalar for Rational {
     }
 }
 
-#[cfg(feature = "backendrug")]
+#[cfg(backend = "rug")]
 impl IntoScalar for Float {
     #[inline]
     fn into_scalar(self) -> Scalar {
@@ -167,7 +167,7 @@ impl IntoScalar for Float {
     }
 }
 
-#[cfg(feature = "backendrug")]
+#[cfg(backend = "rug")]
 impl_from_for_scalar!(Integer, Rational, Float);
 
 // ============================================================================

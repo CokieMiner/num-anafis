@@ -21,37 +21,32 @@
 //! }
 //! ```
 
-#![cfg_attr(
-    all(
-        not(feature = "std"),
-        any(feature = "backend32", feature = "backend64", feature = "backendrug")
-    ),
-    no_std
-)]
+#![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
 extern crate alloc;
 
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
+// Backend features are mutually exclusive — enforce at compile time.
+// (The build.rs falls back to backend64 if none is selected, so only
+// the "multiple backends" case needs guarding here.)
+#[cfg(any(
+    all(feature = "backend32", feature = "backend64"),
+    all(feature = "backend32", feature = "backendrug"),
+    all(feature = "backend64", feature = "backendrug"),
+))]
+compile_error!(
+    "Multiple `num-anafis` backends enabled simultaneously. \
+     This usually happens when two dependencies hardcode different backends. \
+     Library crates should use `default-features = false` and forward backend \
+     features — see https://github.com/CokieMiner/num-anafis#backend-selection"
+);
+
 pub use error::NumAnafisError;
-
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
-pub use number::{AnafisMathExt, IntoScalar, r, s};
-
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
-pub use traits::Number;
-
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
-pub use scalar::Scalar;
-
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
-pub use int_math::IntType;
-
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
 pub use float_ops::FloatType;
-
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
+pub use int_math::IntType;
+pub use number::{AnafisMathExt, IntoScalar, r, s};
 pub use rational_math::RationalType;
+pub use scalar::Scalar;
+pub use traits::Number;
 
 #[cfg(feature = "clifford")]
 pub use clifford::{
@@ -59,44 +54,13 @@ pub use clifford::{
     inf, orig, pseudo3d, pseudo5d, qi, qj, qk, sj,
 };
 
-// Backend features are mutually exclusive — enforce that exactly one is selected at compile time.
-#[cfg(not(any(feature = "backend32", feature = "backend64", feature = "backendrug")))]
-compile_error!(
-    "Exactly one backend feature must be enabled: choose 'backend32', 'backend64', or 'backendrug'."
-);
-
-#[cfg(any(
-    all(feature = "backend32", feature = "backend64"),
-    all(feature = "backend32", feature = "backendrug"),
-    all(feature = "backend64", feature = "backendrug"),
-))]
-compile_error!(
-    "Multiple backend features cannot be enabled simultaneously: choose exactly one of 'backend32', 'backend64', or 'backendrug'."
-);
-
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
 mod error;
-
-/// Core number types and operations — umbrella module for all numeric backends.
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
-mod number;
-
-/// Shared traits used across numeric types.
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
-mod traits;
-
-/// Generic scalar type with automatic representation management (Int → Rational → Float).
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
-mod scalar;
-
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
-mod int_math;
-
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
 mod float_ops;
-
-#[cfg(any(feature = "backend32", feature = "backend64", feature = "backendrug"))]
+mod int_math;
+mod number;
 mod rational_math;
+mod scalar;
+mod traits;
 
 #[cfg(feature = "clifford")]
 mod clifford;

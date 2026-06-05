@@ -8,7 +8,7 @@
 ///
 /// The caller must define `BackingInt` and its own `from_i64` before
 /// invoking this macro (the two types have different i64→Self conversions).
-#[cfg(any(feature = "backend64", feature = "backend32"))]
+#[cfg(any(backend = "64", backend = "32"))]
 macro_rules! impl_shared_int_ops {
     () => {
         #[inline]

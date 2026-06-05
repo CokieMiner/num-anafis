@@ -938,7 +938,7 @@ fn reorder_schur(t: &mut MatC, q: &mut MatC) {
     // Assign a cluster ID to each eigenvalue.
     let mut cluster_id = alloc::vec![0; n];
     let mut current_id = 0;
-    
+
     // Transitive closure approach:
     for i in 0..n {
         if cluster_id[i] == 0 {
@@ -981,12 +981,12 @@ fn swap_adjacent_schur(t: &mut MatC, q: &mut MatC, k: usize) {
 
     let x = t12;
     let y = t22.sub(&t11);
-    
+
     let norm_sqr = x.abs_sq() + y.abs_sq();
     if norm_sqr.total_cmp(&s(0)) == Ordering::Equal {
         return; // Already decoupled
     }
-    
+
     let norm = norm_sqr.sqrt();
     let norm_cmplx = Cmplx(norm, s(0));
     let c = x.div(&norm_cmplx);
@@ -1000,10 +1000,10 @@ fn swap_adjacent_schur(t: &mut MatC, q: &mut MatC, k: usize) {
     for i in 0..n {
         let col_k = t.get(i, k).clone();
         let col_k1 = t.get(i, k + 1).clone();
-        
+
         let new_col_k = col_k.mul(&c).add(&col_k1.mul(&s_rot));
         let new_col_k1 = col_k.mul(&s_conj.neg()).add(&col_k1.mul(&c_conj));
-        
+
         t.set(i, k, new_col_k);
         t.set(i, k + 1, new_col_k1);
     }
@@ -1012,10 +1012,10 @@ fn swap_adjacent_schur(t: &mut MatC, q: &mut MatC, k: usize) {
     for j in 0..n {
         let row_k = t.get(k, j).clone();
         let row_k1 = t.get(k + 1, j).clone();
-        
+
         let new_row_k = c_conj.mul(&row_k).add(&s_conj.mul(&row_k1));
         let new_row_k1 = s_rot.neg().mul(&row_k).add(&c.mul(&row_k1));
-        
+
         t.set(k, j, new_row_k);
         t.set(k + 1, j, new_row_k1);
     }
@@ -1025,10 +1025,10 @@ fn swap_adjacent_schur(t: &mut MatC, q: &mut MatC, k: usize) {
     for i in 0..n {
         let col_k = q.get(i, k).clone();
         let col_k1 = q.get(i, k + 1).clone();
-        
+
         let new_col_k = col_k.mul(&c).add(&col_k1.mul(&s_rot));
         let new_col_k1 = col_k.mul(&s_conj.neg()).add(&col_k1.mul(&c_conj));
-        
+
         q.set(i, k, new_col_k);
         q.set(i, k + 1, new_col_k1);
     }

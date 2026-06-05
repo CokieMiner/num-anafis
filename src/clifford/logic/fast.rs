@@ -6,16 +6,16 @@ use core::hash::{Hash, Hasher};
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use super::types::{CliffordNumber, GeneratorSet, INLINE_COEFF_COUNT, scalar_zero};
+use crate::error::NumAnafisError;
 use crate::scalar::Scalar;
 use crate::traits::Number;
-use crate::error::NumAnafisError;
 
 /// A purely algebraic, zero-allocation Clifford multivector optimized for `#![no_std]`
 /// and const-generic compile-time evaluation.
 ///
 /// `P`, `Q`, `R` define the signature (positive, negative, zero metrics).
 /// Currently limits to algebras where `P + Q + R <= 5` for inline storage.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 #[non_exhaustive]
 pub struct FastClifford<const P: usize, const Q: usize, const R: usize> {
@@ -158,18 +158,40 @@ impl<const P: usize, const Q: usize, const R: usize> Display for FastClifford<P,
     }
 }
 
+impl<const P: usize, const Q: usize, const R: usize> PartialEq for FastClifford<P, Q, R> {
+    fn eq(&self, other: &Self) -> bool {
+        let len = 1 << Self::active_generators();
+        self.coeffs
+            .iter()
+            .take(len)
+            .zip(other.coeffs.iter().take(len))
+            .all(|(a, b)| a == b)
+    }
+}
+
+impl<const P: usize, const Q: usize, const R: usize> Eq for FastClifford<P, Q, R> {}
+
 impl<const P: usize, const Q: usize, const R: usize> PartialOrd for FastClifford<P, Q, R> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let mv1 = CliffordNumber::from(self);
-        let mv2 = CliffordNumber::from(other);
-        mv1.partial_cmp(&mv2)
+        let len = 1 << Self::active_generators();
+        for i in 0..len {
+            if self.coeffs[i].is_nan_internal() || other.coeffs[i].is_nan_internal() {
+                return None;
+            }
+        }
+        Some(self.total_cmp(other))
     }
 }
 
 impl<const P: usize, const Q: usize, const R: usize> Hash for FastClifford<P, Q, R> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let mv = CliffordNumber::from(self);
-        mv.hash(state);
+        P.hash(state);
+        Q.hash(state);
+        R.hash(state);
+        let len = 1 << Self::active_generators();
+        for c in self.coeffs.iter().take(len) {
+            c.hash(state);
+        }
     }
 }
 
@@ -446,14 +468,16 @@ impl<const P: usize, const Q: usize, const R: usize> Number for FastClifford<P, 
 
     fn to_float(&self) -> Self {
         let mut coeffs = array::from_fn(|_| scalar_zero());
-        for (i, c) in self.coeffs.iter().enumerate().take(INLINE_COEFF_COUNT) {
+        let len = 1 << Self::active_generators();
+        for (i, c) in self.coeffs.iter().enumerate().take(len) {
             coeffs[i] = c.to_float();
         }
         Self { coeffs }
     }
 
     fn approx_eq_number(&self, other: &Self, tolerance: &Self) -> bool {
-        for (i, c) in self.coeffs.iter().enumerate().take(INLINE_COEFF_COUNT) {
+        let len = 1 << Self::active_generators();
+        for (i, c) in self.coeffs.iter().enumerate().take(len) {
             if !c.approx_eq_number(&other.coeffs[i], &tolerance.coeffs[0]) {
                 return false;
             }
@@ -462,7 +486,8 @@ impl<const P: usize, const Q: usize, const R: usize> Number for FastClifford<P, 
     }
 
     fn total_cmp(&self, other: &Self) -> Ordering {
-        for (i, c) in self.coeffs.iter().enumerate().take(INLINE_COEFF_COUNT) {
+        let len = 1 << Self::active_generators();
+        for (i, c) in self.coeffs.iter().enumerate().take(len) {
             let cmp = c.total_cmp(&other.coeffs[i]);
             if cmp != Ordering::Equal {
                 return cmp;

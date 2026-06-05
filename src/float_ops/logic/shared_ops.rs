@@ -4,7 +4,7 @@
 //! expanded in the calling module's scope, picking up the local
 //! `BackingFloat`, `IntType`, `math`, `rational`, and `int_math` bindings.
 
-#[cfg(any(feature = "backend64", feature = "backend32"))]
+#[cfg(any(backend = "64", backend = "32"))]
 macro_rules! impl_shared_float_ops {
     () => {
         #[inline]

@@ -46,11 +46,11 @@ fn main() {
     // ==================================================================
     title("1. Types & Traits (IntType, FloatType, RationalType, AnafisMathExt)");
     {
-        #[cfg(feature = "backend64")]
+        #[cfg(backend = "64")]
         let my_float: FloatType = core::f64::consts::PI;
-        #[cfg(feature = "backend32")]
+        #[cfg(backend = "32")]
         let my_float: FloatType = core::f32::consts::PI;
-        #[cfg(feature = "backendrug")]
+        #[cfg(backend = "rug")]
         let my_float: FloatType = FloatType::with_val(53, core::f64::consts::PI);
 
         println!(
@@ -64,9 +64,9 @@ fn main() {
         );
     }
 
-    #[cfg(feature = "backendrug")]
+    #[cfg(backend = "rug")]
     let my_int: IntType = IntType::from(42);
-    #[cfg(not(feature = "backendrug"))]
+    #[cfg(not(backend = "rug"))]
     let my_int: IntType = 42;
 
     println!(

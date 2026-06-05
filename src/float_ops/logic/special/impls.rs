@@ -219,10 +219,10 @@ macro_rules! impl_spec_float {
     };
 }
 
-#[cfg(feature = "backend32")]
+#[cfg(backend = "32")]
 impl_spec_int!(i32);
 
-#[cfg(feature = "backend32")]
+#[cfg(backend = "32")]
 impl_spec_float!(
     f32,
     i32,
@@ -655,10 +655,10 @@ impl_spec_float!(
 // SpecFloat / SpecInt trait implementations for f64/i64 backend
 // ============================================================================
 
-#[cfg(feature = "backend64")]
+#[cfg(backend = "64")]
 impl_spec_int!(i64);
 
-#[cfg(feature = "backend64")]
+#[cfg(backend = "64")]
 impl_spec_float!(
     f64,
     i64,
