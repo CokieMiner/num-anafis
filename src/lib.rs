@@ -61,6 +61,8 @@ mod number;
 mod rational_math;
 mod scalar;
 mod traits;
+/// Complex numbers module.
+pub mod complex;
 
 #[cfg(feature = "clifford")]
 mod clifford;

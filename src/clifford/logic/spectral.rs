@@ -1309,7 +1309,7 @@ impl Number for CliffordNumber {
             mv.coeffs_mut_slice()[0] = s;
             mv
         } else {
-            nan_clifford(&self.gens)
+            self.ln() / base.ln()
         }
     }
 
@@ -1319,15 +1319,15 @@ impl Number for CliffordNumber {
             let mut mv = Self::zero_unchecked(self.gens.clone());
             mv.coeffs_mut_slice()[0] = s;
             mv
-        } else if is_pure_scalar(exp) && can_embed(&self.gens) {
+        } else if is_pure_scalar(exp) {
             let exp_s = extract_scalar(exp);
             let f = |c: &Cmplx| {
                 let log_c = c.ln();
                 log_c.scale(&exp_s).exp()
             };
-            large_apply_via_spectral_closure(self, &f)
+            apply_via_spectral_closure(self, &f)
         } else {
-            nan_clifford(&self.gens)
+            (self.ln() * exp.clone()).exp()
         }
     }
 
@@ -1354,7 +1354,7 @@ impl Number for CliffordNumber {
             mv.coeffs_mut_slice()[0] = s;
             mv
         } else {
-            nan_clifford(&self.gens)
+            (self.lgamma() + other.lgamma() - (self.clone() + other.clone()).lgamma()).exp()
         }
     }
 
@@ -1368,11 +1368,36 @@ impl Number for CliffordNumber {
     fn hermite(&self, n: &Self) -> Self {
         apply_real_binary_fn(self, n, &|s, o| s.hermite(o))
     }
-    fn assoc_legendre(&self, _l: &Self, _m: &Self) -> Self {
-        nan_clifford(&self.gens)
+    fn assoc_legendre(&self, l: &Self, m: &Self) -> Self {
+        if !is_pure_scalar(l) || !is_pure_scalar(m) {
+            return nan_clifford(&self.gens);
+        }
+        let l_s = extract_scalar(l);
+        let m_s = extract_scalar(m);
+        if is_pure_scalar(self) {
+            let s = self.coeff(0).assoc_legendre(&l_s, &m_s);
+            let mut out = CliffordNumber::zero_unchecked(self.gens.clone());
+            out.coeffs_mut_slice()[0] = s;
+            out
+        } else {
+            apply_via_spectral_closure(self, &|c: &Cmplx| c.apply_real_only(&|s| s.assoc_legendre(&l_s, &m_s)))
+        }
     }
-    fn spherical_harmonic(&self, _l: &Self, _m: &Self, _phi: &Self) -> Self {
-        nan_clifford(&self.gens)
+    fn spherical_harmonic(&self, l: &Self, m: &Self, phi: &Self) -> Self {
+        if !is_pure_scalar(l) || !is_pure_scalar(m) || !is_pure_scalar(phi) {
+            return nan_clifford(&self.gens);
+        }
+        let l_s = extract_scalar(l);
+        let m_s = extract_scalar(m);
+        let phi_s = extract_scalar(phi);
+        if is_pure_scalar(self) {
+            let s = self.coeff(0).spherical_harmonic(&l_s, &m_s, &phi_s);
+            let mut out = CliffordNumber::zero_unchecked(self.gens.clone());
+            out.coeffs_mut_slice()[0] = s;
+            out
+        } else {
+            apply_via_spectral_closure(self, &|c: &Cmplx| c.apply_real_only(&|s| s.spherical_harmonic(&l_s, &m_s, &phi_s)))
+        }
     }
     fn is_zero(&self) -> bool {
         for i in 0..self.blade_count() {
